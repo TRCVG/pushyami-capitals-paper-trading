@@ -1,0 +1,6 @@
+streamlit
+pandas
+plotly
+jugaad-data
+python-docx
+kaleido
