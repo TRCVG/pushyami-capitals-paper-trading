@@ -892,24 +892,9 @@ def get_live_prices_batch(symbols):
 @st.cache_data(ttl=60, show_spinner=False)
 def get_last_closing_price(symbol):
     sym = symbol.upper().strip()
-    idx_map = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "^CNXFIN"}
-    ticker_symbol = idx_map.get(sym, f"{sym}.NS" if not sym.endswith(".NS") else sym)
-
-    try:
-        hist = yf.Ticker(ticker_symbol).history(period="5d", auto_adjust=False)
-
-        if hist.empty or "Close" not in hist.columns:
-            return 0.05
-
-        close = pd.to_numeric(hist["Close"], errors="coerce").dropna()
-
-        if close.empty:
-            return 0.05
-
-        return round(float(close.iloc[-1]), 2)
-
-    except Exception:
-        return 0.05
+    data = get_live_prices_batch((sym,))
+    price = data.get(sym, (0.0, 0.0))[0]
+    return round(float(price), 2) if price else 24500.0
 
 
 @st.cache_data(ttl=120, show_spinner=False)
@@ -1004,16 +989,8 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
             option_type=opt_type.upper().strip(),
         )
 
-       if df is None or df.empty:
-          st.warning(
-                     f"No NSE data returned: {symbol} | "
-                     f"{expiry_dt} | {strike} | {opt_type} | {entry_date}"
-           )
-              return None
-
-       if "CLOSE" not in df.columns:
-            st.warning(f"NSE data returned, but CLOSE column is missing. Columns: {list(df.columns)}")
-             return None
+        if df is None or df.empty or "CLOSE" not in df.columns:
+            return None
 
         close_series = pd.to_numeric(df["CLOSE"], errors="coerce").dropna()
 
@@ -1024,6 +1001,7 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
 
     except Exception:
         return None
+
 
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
@@ -1040,20 +1018,15 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
         elif isinstance(entry_dt, date):
             entry_date = entry_dt
         else:
-            entry_date = datetime.strptime(
-                str(entry_dt), "%d-%b-%Y"
-            ).date()
+            entry_date = datetime.strptime(str(entry_dt), "%d-%b-%Y").date()
 
         expiry_dt = expiry_date
-
         if isinstance(expiry_dt, datetime):
             expiry_dt = expiry_dt.date()
         elif not isinstance(expiry_dt, date):
             for fmt in ("%d-%b-%Y", "%d-%B-%Y", "%Y-%m-%d"):
                 try:
-                    expiry_dt = datetime.strptime(
-                        str(expiry_dt), fmt
-                    ).date()
+                    expiry_dt = datetime.strptime(str(expiry_dt), fmt).date()
                     break
                 except ValueError:
                     expiry_dt = None
@@ -1074,10 +1047,7 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
         if df is None or df.empty or "CLOSE" not in df.columns:
             return None
 
-        close_series = pd.to_numeric(
-            df["CLOSE"], errors="coerce"
-        ).dropna()
-
+        close_series = pd.to_numeric(df["CLOSE"], errors="coerce").dropna()
         if close_series.empty:
             return None
 
@@ -1085,8 +1055,6 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
 
     except Exception:
         return None
-
-
 
 
 def get_position_ltp(contract, position, live_price_map):
@@ -1272,12 +1240,12 @@ else:
         with st.sidebar:
             with st.spinner("Fetching option premium..."):
                 fetched=fetch_option_entry_price(
-                                                    symbol,
-                                                    selected_expiry,
-                                                    strike_price,
-                                                    option_type,
-                                                    entry_date
-                                                  )
+                symbol,
+                selected_expiry,
+                strike_price,
+                option_type,
+                entry_date
+            )
                 if fetched: st.session_state[price_key]=fetched; st.success(f"Fetched LTP: ₹{fetched:,.2f}")
                 else: st.warning("No archive tick found. Enter price manually.")
     default_price=st.session_state[price_key]
