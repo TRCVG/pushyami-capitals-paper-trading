@@ -1017,6 +1017,66 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
     except Exception:
         return None
 
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
+    """
+    Fetch the NSE derivatives CLOSE for the exact selected entry date
+    and exact index-option contract using jugaad_data.nse.
+    """
+    if derivatives_df is None:
+        return None
+
+    try:
+        if isinstance(entry_dt, datetime):
+            entry_date = entry_dt.date()
+        elif isinstance(entry_dt, date):
+            entry_date = entry_dt
+        else:
+            entry_date = datetime.strptime(
+                str(entry_dt), "%d-%b-%Y"
+            ).date()
+
+        expiry_dt = expiry_date
+        if isinstance(expiry_dt, datetime):
+            expiry_dt = expiry_dt.date()
+        elif not isinstance(expiry_dt, date):
+            for fmt in ("%d-%b-%Y", "%d-%B-%Y", "%Y-%m-%d"):
+                try:
+                    expiry_dt = datetime.strptime(
+                        str(expiry_dt), fmt
+                    ).date()
+                    break
+                except ValueError:
+                    expiry_dt = None
+
+        if expiry_dt is None:
+            return None
+
+        df = derivatives_df(
+            symbol=symbol.upper().strip(),
+            from_date=entry_date,
+            to_date=entry_date,
+            expiry_date=expiry_dt,
+            instrument_type="OPTIDX",
+            strike_price=float(strike),
+            option_type=opt_type.upper().strip(),
+        )
+
+        if df is None or df.empty or "CLOSE" not in df.columns:
+            return None
+
+        close_series = pd.to_numeric(
+            df["CLOSE"], errors="coerce"
+        ).dropna()
+
+        if close_series.empty:
+            return None
+
+        return round(float(close_series.iloc[-1]), 2)
+
+    except Exception:
+        return None
+
 
 def get_position_ltp(contract, position, live_price_map):
     """
@@ -1200,7 +1260,13 @@ else:
     if st.sidebar.button("🔄 Fetch Option LTP",use_container_width=True):
         with st.sidebar:
             with st.spinner("Fetching option premium..."):
-                fetched=fetch_option_ltp_via_derivatives_df(symbol,selected_expiry,strike_price,option_type,entry_date)
+                fetched=fetch_option_entry_price(
+                                                    symbol,
+                                                    selected_expiry,
+                                                        strike_price,
+                                                       option_type,
+                                                      entry_date
+                                                  )
                 if fetched: st.session_state[price_key]=fetched; st.success(f"Fetched LTP: ₹{fetched:,.2f}")
                 else: st.warning("No archive tick found. Enter price manually.")
     default_price=st.session_state[price_key]
