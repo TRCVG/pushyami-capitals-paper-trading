@@ -892,9 +892,24 @@ def get_live_prices_batch(symbols):
 @st.cache_data(ttl=60, show_spinner=False)
 def get_last_closing_price(symbol):
     sym = symbol.upper().strip()
-    data = get_live_prices_batch((sym,))
-    price = data.get(sym, (0.0, 0.0))[0]
-    return round(float(price), 2) if price else 0.0
+    idx_map = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "FINNIFTY": "^CNXFIN"}
+    ticker_symbol = idx_map.get(sym, f"{sym}.NS" if not sym.endswith(".NS") else sym)
+
+    try:
+        hist = yf.Ticker(ticker_symbol).history(period="5d", auto_adjust=False)
+
+        if hist.empty or "Close" not in hist.columns:
+            return 0.05
+
+        close = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+
+        if close.empty:
+            return 0.05
+
+        return round(float(close.iloc[-1]), 2)
+
+    except Exception:
+        return 0.05
 
 
 @st.cache_data(ttl=120, show_spinner=False)
