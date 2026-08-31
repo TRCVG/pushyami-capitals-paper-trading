@@ -47,30 +47,58 @@ SHEET_HEADERS = {
 
 @st.cache_resource(show_spinner=False)
 def get_google_client():
-    """Find a service-account JSON in the app folder and connect to Sheets."""
+    """Connect to Google Sheets using Streamlit Secrets online,
+    with local service_account.json fallback."""
     try:
         import gspread
         from google.oauth2.service_account import Credentials
-
-        app_dir = Path(__file__).resolve().parent
-        candidates = [
-            app_dir / "service_account.json",
-            app_dir / "google_service_account.json",
-            app_dir / "credentials.json",
-        ]
-        candidates += [Path(p) for p in glob.glob(str(app_dir / "*.json"))]
-
-        json_file = next((p for p in candidates if p.exists()), None)
-        if json_file is None:
-            return None, "No Google service-account JSON found in the app folder."
 
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive",
         ]
-        credentials = Credentials.from_service_account_file(str(json_file), scopes=scopes)
+
+        # ONLINE: Streamlit Cloud
+        if "gcp_service_account" in st.secrets:
+            credentials = Credentials.from_service_account_info(
+                dict(st.secrets["gcp_service_account"]),
+                scopes=scopes,
+            )
+
+            client = gspread.authorize(credentials)
+            return client, None
+
+        # LOCAL: service_account.json
+        app_dir = Path(__file__).resolve().parent
+
+        candidates = [
+            app_dir / "service_account.json",
+            app_dir / "google_service_account.json",
+            app_dir / "credentials.json",
+        ]
+
+        candidates += [
+            Path(p)
+            for p in glob.glob(str(app_dir / "*.json"))
+        ]
+
+        json_file = next(
+            (p for p in candidates if p.exists()),
+            None
+        )
+
+        if json_file is None:
+            return None, "Google credentials not found."
+
+        credentials = Credentials.from_service_account_file(
+            str(json_file),
+            scopes=scopes,
+        )
+
         client = gspread.authorize(credentials)
+
         return client, None
+
     except Exception as e:
         return None, str(e)
 
