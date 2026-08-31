@@ -1024,6 +1024,7 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
 
     except Exception:
         return None
+
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
     """
