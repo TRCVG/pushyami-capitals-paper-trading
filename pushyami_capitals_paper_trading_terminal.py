@@ -894,7 +894,7 @@ def get_last_closing_price(symbol):
     sym = symbol.upper().strip()
     data = get_live_prices_batch((sym,))
     price = data.get(sym, (0.0, 0.0))[0]
-    return round(float(price), 2) if price else 24500.0
+    return round(float(price), 2) if price else 0.0
 
 
 @st.cache_data(ttl=120, show_spinner=False)
