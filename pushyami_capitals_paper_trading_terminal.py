@@ -1004,8 +1004,16 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
             option_type=opt_type.upper().strip(),
         )
 
-        if df is None or df.empty or "CLOSE" not in df.columns:
-            return None
+       if df is None or df.empty:
+          st.warning(
+                     f"No NSE data returned: {symbol} | "
+                     f"{expiry_dt} | {strike} | {opt_type} | {entry_date}"
+           )
+              return None
+
+       if "CLOSE" not in df.columns:
+            st.warning(f"NSE data returned, but CLOSE column is missing. Columns: {list(df.columns)}")
+             return None
 
         close_series = pd.to_numeric(df["CLOSE"], errors="coerce").dropna()
 
