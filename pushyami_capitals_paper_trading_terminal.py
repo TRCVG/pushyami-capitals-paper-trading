@@ -1274,9 +1274,9 @@ else:
                 fetched=fetch_option_entry_price(
                                                     symbol,
                                                     selected_expiry,
-                                                        strike_price,
-                                                       option_type,
-                                                      entry_date
+                                                    strike_price,
+                                                    option_type,
+                                                    entry_date
                                                   )
                 if fetched: st.session_state[price_key]=fetched; st.success(f"Fetched LTP: ₹{fetched:,.2f}")
                 else: st.warning("No archive tick found. Enter price manually.")
