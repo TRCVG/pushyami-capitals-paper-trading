@@ -1070,8 +1070,20 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
             option_type=opt_type.upper().strip(),
         )
 
-        if df is None or df.empty or "CLOSE" not in df.columns:
-            return None
+
+
+        
+            if df is None or df.empty:
+                st.warning(
+                    f"No NSE data: {symbol} | Expiry: {expiry_dt} | "
+                    f"Strike: {strike} | Type: {opt_type} | Date: {entry_date}"
+                )
+                 return None
+
+           if "CLOSE" not in df.columns:
+                    st.warning(f"CLOSE column missing. Columns: {list(df.columns)}")
+                    return None
+
 
         close_series = pd.to_numeric(
             df["CLOSE"], errors="coerce"
