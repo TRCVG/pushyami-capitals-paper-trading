@@ -1076,7 +1076,7 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
             option_type=opt_type.upper().strip(),
         )
             
-          if df is None or df.empty:
+        if df is None or df.empty:
                 st.warning(
                     f"NSE returned no data: "
                     f"{symbol} | {entry_date} | {expiry_dt} | "
@@ -1084,7 +1084,7 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
                 )
                 return None
             
-         if "CLOSE" not in df.columns:
+        if "CLOSE" not in df.columns:
                 st.warning(
                     f"NSE data found, but CLOSE column is missing. "
                     f"Columns: {list(df.columns)}"
