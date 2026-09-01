@@ -1280,7 +1280,7 @@ else:
     trade_key=f"{symbol}_{selected_expiry_str}_{int(strike_price)}_{option_type}"; asset_type=option_type
     price_key=f"fetched_price_{trade_key}"
     if price_key not in st.session_state: st.session_state[price_key]=150.0
-        if st.sidebar.button("🔄 Fetch Option LTP", use_container_width=True):
+    if st.sidebar.button("🔄 Fetch Option LTP", use_container_width=True):
         with st.sidebar:
             with st.spinner("Fetching option premium..."):
                 fetched = fetch_option_entry_price(
