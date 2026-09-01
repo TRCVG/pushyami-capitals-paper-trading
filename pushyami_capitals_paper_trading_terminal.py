@@ -1038,14 +1038,15 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
     """
-    Fetch the NSE historical CLOSE for the exact index-option contract
-    on the selected entry date using jugaad_data.nse.
+    Fetch the NSE derivatives CLOSE for the exact index-option contract
+    on the selected entry date using the same jugaad_data.nse method
+    used by the Option Chain.
     """
     if derivatives_df is None:
         return None
 
     try:
-        # Convert entry date
+        # Normalize entry date
         if isinstance(entry_dt, datetime):
             entry_date = entry_dt.date()
         elif isinstance(entry_dt, date):
@@ -1055,7 +1056,7 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
                 str(entry_dt), "%d-%b-%Y"
             ).date()
 
-        # Convert expiry date
+        # Normalize expiry date
         if isinstance(expiry_date, datetime):
             expiry_dt = expiry_date.date()
         elif isinstance(expiry_date, date):
@@ -1069,16 +1070,20 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
                     ).date()
                     break
                 except ValueError:
-                    continue
+                    pass
 
         if expiry_dt is None:
             return None
 
-        # Query NSE historical derivatives data.
+        # Use a small window around the selected date.
+        # This also handles NSE holidays/weekends.
+        from_date = entry_date - timedelta(days=3)
+        to_date = entry_date
+
         df = derivatives_df(
             symbol=symbol.upper().strip(),
-            from_date=entry_date,
-            to_date=entry_date,
+            from_date=from_date,
+            to_date=to_date,
             expiry_date=expiry_dt,
             instrument_type="OPTIDX",
             strike_price=float(strike),
