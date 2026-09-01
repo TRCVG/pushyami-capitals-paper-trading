@@ -1075,9 +1075,21 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
             strike_price=float(strike),
             option_type=opt_type.upper().strip(),
         )
-
-        if df is None or df.empty or "CLOSE" not in df.columns:
-            return None
+            
+          if df is None or df.empty:
+                st.warning(
+                    f"NSE returned no data: "
+                    f"{symbol} | {entry_date} | {expiry_dt} | "
+                    f"{strike} | {opt_type}"
+                )
+                return None
+            
+         if "CLOSE" not in df.columns:
+                st.warning(
+                    f"NSE data found, but CLOSE column is missing. "
+                    f"Columns: {list(df.columns)}"
+                )
+                return None
 
         close_series = pd.to_numeric(df["CLOSE"], errors="coerce").dropna()
         if close_series.empty:
@@ -1268,18 +1280,25 @@ else:
     trade_key=f"{symbol}_{selected_expiry_str}_{int(strike_price)}_{option_type}"; asset_type=option_type
     price_key=f"fetched_price_{trade_key}"
     if price_key not in st.session_state: st.session_state[price_key]=150.0
-    if st.sidebar.button("🔄 Fetch Option LTP",use_container_width=True):
-        with st.sidebar:
-            with st.spinner("Fetching option premium..."):
-                fetched=fetch_option_entry_price(
-                symbol,
-                selected_expiry,
-                strike_price,
-                option_type,
-                entry_date
-            )
-                if fetched: st.session_state[price_key]=fetched; st.success(f"Fetched LTP: ₹{fetched:,.2f}")
-                else: st.warning("No archive tick found. Enter price manually.")
+    if st.sidebar.button("🔄 Fetch Option LTP", use_container_width=True):
+     with st.sidebar:
+         with st.spinner("Fetching option premium..."):
+             fetched = fetch_option_entry_price(
+                 symbol,
+                 selected_expiry,
+                 strike_price,
+                 option_type,
+                 entry_date
+             )
+
+            if fetched is not None and fetched > 0:
+                st.session_state[price_key] = fetched
+                st.success(f"Fetched Option Close: ₹{fetched:,.2f}")
+            else:
+                st.warning(
+                    "No NSE option data found for the selected "
+                    "symbol, expiry, strike, option type and entry date."
+                )
     default_price=st.session_state[price_key]
 
 action=st.sidebar.radio("Action",["BUY","SELL"],horizontal=True)
