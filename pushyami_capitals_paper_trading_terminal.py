@@ -1164,7 +1164,7 @@ def get_position_ltp(contract, position, live_price_map):
                 expiry_date=expiry,
                 strike=strike,
                 opt_type=opt_type,
-                entry_dt=entry_dt + timedelta(days=4),
+                entry_dt=entry_dt + timedelta(days=7),
             )
 
             if option_ltp is not None and option_ltp > 0:
