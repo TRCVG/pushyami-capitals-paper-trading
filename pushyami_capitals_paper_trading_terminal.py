@@ -1280,25 +1280,25 @@ else:
     trade_key=f"{symbol}_{selected_expiry_str}_{int(strike_price)}_{option_type}"; asset_type=option_type
     price_key=f"fetched_price_{trade_key}"
     if price_key not in st.session_state: st.session_state[price_key]=150.0
-    if st.sidebar.button("🔄 Fetch Option LTP", use_container_width=True):
-     with st.sidebar:
-         with st.spinner("Fetching option premium..."):
-             fetched = fetch_option_entry_price(
-                 symbol,
-                 selected_expiry,
-                 strike_price,
-                 option_type,
-                 entry_date
-             )
-
-            if fetched is not None and fetched > 0:
-                st.session_state[price_key] = fetched
-                st.success(f"Fetched Option Close: ₹{fetched:,.2f}")
-            else:
-                st.warning(
-                    "No NSE option data found for the selected "
-                    "symbol, expiry, strike, option type and entry date."
+        if st.sidebar.button("🔄 Fetch Option LTP", use_container_width=True):
+        with st.sidebar:
+            with st.spinner("Fetching option premium..."):
+                fetched = fetch_option_entry_price(
+                    symbol,
+                    selected_expiry,
+                    strike_price,
+                    option_type,
+                    entry_date
                 )
+
+                if fetched is not None and fetched > 0:
+                    st.session_state[price_key] = fetched
+                    st.success(f"Fetched Option Close: ₹{fetched:,.2f}")
+                else:
+                    st.warning(
+                        "No NSE option data found for the selected "
+                        "symbol, expiry, strike, option type and entry date."
+                    )
     default_price=st.session_state[price_key]
 
 action=st.sidebar.radio("Action",["BUY","SELL"],horizontal=True)
