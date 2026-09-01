@@ -1038,34 +1038,43 @@ def fetch_option_ltp_via_derivatives_df(symbol, expiry_date, strike, opt_type, e
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
     """
-    Fetch the NSE derivatives CLOSE for the exact selected entry date
-    and exact index-option contract using jugaad_data.nse.
+    Fetch the NSE historical CLOSE for the exact index-option contract
+    on the selected entry date using jugaad_data.nse.
     """
     if derivatives_df is None:
         return None
 
     try:
+        # Convert entry date
         if isinstance(entry_dt, datetime):
             entry_date = entry_dt.date()
         elif isinstance(entry_dt, date):
             entry_date = entry_dt
         else:
-            entry_date = datetime.strptime(str(entry_dt), "%d-%b-%Y").date()
+            entry_date = datetime.strptime(
+                str(entry_dt), "%d-%b-%Y"
+            ).date()
 
-        expiry_dt = expiry_date
-        if isinstance(expiry_dt, datetime):
-            expiry_dt = expiry_dt.date()
-        elif not isinstance(expiry_dt, date):
+        # Convert expiry date
+        if isinstance(expiry_date, datetime):
+            expiry_dt = expiry_date.date()
+        elif isinstance(expiry_date, date):
+            expiry_dt = expiry_date
+        else:
+            expiry_dt = None
             for fmt in ("%d-%b-%Y", "%d-%B-%Y", "%Y-%m-%d"):
                 try:
-                    expiry_dt = datetime.strptime(str(expiry_dt), fmt).date()
+                    expiry_dt = datetime.strptime(
+                        str(expiry_date), fmt
+                    ).date()
                     break
                 except ValueError:
-                    expiry_dt = None
+                    continue
 
         if expiry_dt is None:
             return None
 
+        # Query NSE historical derivatives data.
         df = derivatives_df(
             symbol=symbol.upper().strip(),
             from_date=entry_date,
@@ -1075,23 +1084,18 @@ def fetch_option_entry_price(symbol, expiry_date, strike, opt_type, entry_dt):
             strike_price=float(strike),
             option_type=opt_type.upper().strip(),
         )
-            
-        if df is None or df.empty:
-                st.warning(
-                    f"NSE returned no data: "
-                    f"{symbol} | {entry_date} | {expiry_dt} | "
-                    f"{strike} | {opt_type}"
-                )
-                return None
-            
-        if "CLOSE" not in df.columns:
-                st.warning(
-                    f"NSE data found, but CLOSE column is missing. "
-                    f"Columns: {list(df.columns)}"
-                )
-                return None
 
-        close_series = pd.to_numeric(df["CLOSE"], errors="coerce").dropna()
+        if df is None or df.empty:
+            return None
+
+        if "CLOSE" not in df.columns:
+            return None
+
+        close_series = pd.to_numeric(
+            df["CLOSE"],
+            errors="coerce"
+        ).dropna()
+
         if close_series.empty:
             return None
 
